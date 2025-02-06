@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">My Application</string>
+    <string name="bottom_bar_text">This is the bottom of my App</string>
+    <string name="welcome_message">Hello and welcome to my app</string>
+    <string name="click_me">Click Me</string>
+    <string name="button_clicked">You Clicked the button</string>
+    <string name="frost_description">Logo of my band</string>
+    <string name="goodbye_message">That is my App</string>
+    <string name="cardText1">This is an info card</string>
+    <string name="cardText2">It can be reused</string>
+    <string name="login_message">Hello and welcome! Please login</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="logging_in">Logging in...</string>
+    <string name="login_error">Please insert credentials</string>
+    <string name="login">Login</string>
+    <string name="cancel">Cancel</string>
+    <string name="form_reset">Form Reset</string>
+    <string name="clickety_click">+</string>
+    <string name="cardTitle1">Card title 1</string>
+    <string name="cardTitle2">Card title 2</string>
+</resources>

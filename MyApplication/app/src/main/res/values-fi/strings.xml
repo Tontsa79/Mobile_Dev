@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Miun sovellus</string>
+    <string name="bottom_bar_text">Tää on miun sovelluksen pohja</string>
+    <string name="welcome_message">Tervetuloa miun sovellukseen</string>
+    <string name="click_me">Painappa tästä</string>
+    <string name="button_clicked">Sie painoit siitä</string>
+    <string name="frost_description">Bändini logo</string>
+    <string name="goodbye_message">Se oli miun sovellus</string>
+    <string name="cardText1">Tämä on info kortti</string>
+    <string name="cardText2">Sen on uudesti käytettävä</string>
+    <string name="login_message">Hei ja tervetuloa! Ystävällisesti kirjaudu sisään</string>
+    <string name="username">Käyttäjänimi</string>
+    <string name="password">Salasana</string>
+    <string name="logging_in">Kirjaudutaan...</string>
+    <string name="login_error">Laita nyt jotain edes</string>
+    <string name="login">Kirjaudu</string>
+    <string name="cancel">Peruuta</string>
+    <string name="form_reset">Lomakkeen nollaus</string>
+    <string name="clickety_click">+</string>
+    <string name="cardTitle1">Kortti otsikko 1</string>
+    <string name="cardTitle2">Kortti otsikko 2</string>
+</resources>
