@@ -1,5 +1,11 @@
 package com.example.myapplication
 
+import android.app.Application
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -27,13 +33,20 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.delay
 import androidx.navigation.compose.*
 import androidx.navigation.compose.NavHost
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,27 +60,120 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+class SensorViewModel(application: Application) : AndroidViewModel(application), SensorEventListener {
+    private val sensorManager = application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    private val _tiltAngle = MutableStateFlow(0f)
+    val tiltAngle = _tiltAngle.asStateFlow()
+
+    init {
+        val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        accelerometer?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        event?.let {
+            val x = it.values[0]
+            val y = it.values[1]
+            val tilt = Math.toDegrees(Math.atan2(y.toDouble(), x.toDouble())).toFloat()
+            viewModelScope.launch {
+                _tiltAngle.emit(tilt)
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    override fun onCleared() {
+        super.onCleared()
+        sensorManager.unregisterListener(this)
+    }
+}
+
+@Composable
+fun levelTool(sensorViewModel: SensorViewModel = viewModel()) {
+    val tilt by sensorViewModel.tiltAngle.collectAsState()
+
+    val backgroungColor = when {
+        abs(tilt) < 5 -> Color.Green
+        abs(tilt) < 15 -> Color.Yellow
+        else -> Color.Red
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroungColor)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Tilt Angle: %.2f".format(tilt), style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = if (abs(tilt) < 5) "Level" else "Not Level",
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+class CounterViewModel: ViewModel() {
+    private val _count = mutableStateOf(0)
+    val count: State<Int> = _count
+
+    fun increase() {
+        _count.value++
+    }
+    fun reset() {
+        _count.value = 0
+    }
+}
+
+@Composable
+fun CounterDisplay(counterViewModel: CounterViewModel) {
+    val count by counterViewModel.count
+    Text("Counter value: $count", style = MaterialTheme.typography.headlineMedium)
+}
+
+@Composable
+fun CounterControls(counterViewModel: CounterViewModel) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Button(onClick = { counterViewModel.increase()}) {
+            Text("Increase")
+        }
+        Button(onClick = { counterViewModel.reset()}) {
+            Text("Reset")
+        }
+    }
+}
+
+class TimerViewModel : ViewModel() {
+    private val _seconds = MutableStateFlow(0)
+    val seconds = _seconds.asStateFlow()
+
+    init {
+        startTimer()
+    }
+
+    private fun startTimer() {
+        viewModelScope.launch {
+            while (true) {
+                delay(1000L)
+                _seconds.value++
+            }
+        }
+    }
+}
+
 class userViewModel : ViewModel() {
     private val _username = mutableStateOf("")
     val username: State<String> = _username
 
-    private val _count = mutableStateOf(0)
-    val count: State<Int> = _count
-
-    private val _seconds = mutableStateOf(0)
-    val seconds: State<Int> = _seconds
-
     fun setUsername(newUsername: String) {
         _username.value = newUsername
-    }
-    fun incrementCount() {
-        _count.value++
-    }
-    fun resetCount() {
-        _count.value = 0
-    }
-    fun incrementSeconds(){
-        _seconds.value++
     }
 }
 
@@ -75,6 +181,11 @@ class userViewModel : ViewModel() {
 @Composable
 fun MyScreen(navController: NavHostController, userViewModel: userViewModel) {
     val context = LocalContext.current
+    val counterViewModel : CounterViewModel = viewModel()
+    val timerViewModel : TimerViewModel = viewModel()
+    val sensorViewModel : SensorViewModel = viewModel()
+
+    val secondsElapsed by timerViewModel. seconds.collectAsState()
 
     Scaffold(
         topBar = {
@@ -96,9 +207,7 @@ fun MyScreen(navController: NavHostController, userViewModel: userViewModel) {
                 }
             }
             ) { innerPadding ->
-        val count by userViewModel.count
         val username by userViewModel.username
-        val seconds by userViewModel.seconds
         val lifeCycle = LocalLifecycleOwner.current
         var isActive by remember { mutableStateOf(true)}
 
@@ -111,14 +220,7 @@ fun MyScreen(navController: NavHostController, userViewModel: userViewModel) {
                     lifeCycle.lifecycle.removeObserver(observer)
                 }
         }
-        LaunchedEffect(Unit) {
-                while (true) {
-                    delay(1000L)
-                    if(isActive) {
-                        userViewModel.incrementSeconds()
-                }
-            }
-        }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -136,23 +238,14 @@ fun MyScreen(navController: NavHostController, userViewModel: userViewModel) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Counter value: $count", style = MaterialTheme.typography.headlineMedium)
+                CounterDisplay(counterViewModel)
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Button(onClick = {userViewModel.incrementCount()}) {
-                        Text("Increment")
-                    }
-                    Button(onClick = {userViewModel.resetCount()}) {
-                        Text("Reset")
-                    }
-                }
+                CounterControls(counterViewModel)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Seconds passed: $seconds", style = MaterialTheme.typography.headlineMedium)
-
+                Text("Seconds passed: $secondsElapsed", style = MaterialTheme.typography.headlineMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+                levelTool(sensorViewModel)
                 Text(stringResource(id = R.string.welcome_message), style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(8.dp))
                /* InfoCard(
